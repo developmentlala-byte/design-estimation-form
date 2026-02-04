@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimation & Measurement Generator - langitlangit.id</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* A4 Styling for Preview */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
+            padding: 20mm;
+            position: relative;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            color: #1e293b;
+        }
+
+        /* Loading Animation */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Radio & Checkbox Styling */
+        .option-card {
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        input[type="radio"]:checked + .option-card,
+        input[type="checkbox"]:checked + .addon-card {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col">
+
+    <!-- Header App -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 shadow-sm flex-none z-20">
+        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Kalkulator Estimasi Proyek</h1>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Smart Estimation & Survey</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="resetButton" title="Reset Form" class="text-slate-400 hover:text-red-600 p-2 rounded-lg transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+                <button id="exportPdfButton" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Simpan PDF
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        
+        <!-- LEFT PANEL: INPUT FORM -->
+        <aside class="w-full lg:w-[400px] bg-white border-r border-slate-200 overflow-y-auto p-8 z-10">
+            <form id="surveyForm" class="space-y-8">
+                
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                        <span class="bg-blue-50 text-blue-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">#</span>
+                        <h3 class="text-sm font-black uppercase tracking-widest text-slate-800">Data Input</h3>
+                    </div>
+
+                    <!-- Client Info -->
+                    <div class="space-y-4 pb-4 border-b border-slate-50">
+                        <div class="group">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1 group-focus-within:text-blue-600 transition-colors">Nama Klien</label>
+                            <input type="text" id="clientName" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 transition-all" placeholder="Nama Klien">
+                        </div>
+                        <div class="group">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1 group-focus-within:text-blue-600 transition-colors">Lokasi Proyek</label>
+                            <input type="text" id="location" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 transition-all" placeholder="Cth: BSD, Tangerang">
+                        </div>
+                    </div>
+                    
+                    <!-- Measurements -->
+                    <div class="space-y-4 pb-4 border-b border-slate-50">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Luasan (M²)</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="group">
+                                <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1">L. Tanah</label>
+                                <input type="number" id="luasTanah" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 font-bold" placeholder="0">
+                            </div>
+                            <div class="group">
+                                <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1">Lt. 1</label>
+                                <input type="number" id="luasBangunanL1" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 font-bold" placeholder="0">
+                            </div>
+                            <div class="group">
+                                <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1">Lt. 2</label>
+                                <input type="number" id="luasBangunanL2" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 font-bold" placeholder="0">
+                            </div>
+                            <div class="group">
+                                <label class="block text-[9px] font-black text-slate-400 uppercase mb-1 ml-1">Lt. 3</label>
+                                <input type="number" id="luasBangunanL3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none text-sm bg-slate-50/50 font-bold" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Area Count -->
+                    <div class="pb-4 border-b border-slate-50">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Interior Prioritas</label>
+                        <div class="p-4 rounded-2xl bg-slate-900 text-white flex items-center gap-4">
+                            <input type="number" id="jumlahAreaPrioritas" class="w-20 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-center font-extrabold text-lg" value="0">
+                            <div class="text-[10px] leading-tight opacity-70">
+                                <p class="font-bold">Area Interior</p>
+                                <p>@ Rp 2.5jt / area</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option & Add-on Selection -->
+                    <div class="space-y-4">
+                        <div class="space-y-3">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pilih Paket Laporan</p>
+                            <div class="space-y-2">
+                                <label class="relative block cursor-pointer">
+                                    <input type="radio" name="reportOption" value="A" class="peer absolute opacity-0" checked>
+                                    <div class="option-card p-3 rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center gap-3 transition-all peer-checked:bg-blue-50 peer-checked:border-blue-600">
+                                        <span class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold peer-checked:bg-blue-600 peer-checked:text-white">A</span>
+                                        <p class="text-xs font-bold text-slate-700">Opsi A: Paket Sipil</p>
+                                    </div>
+                                </label>
+                                <label class="relative block cursor-pointer">
+                                    <input type="radio" name="reportOption" value="B" class="peer absolute opacity-0">
+                                    <div class="option-card p-3 rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center gap-3 transition-all peer-checked:bg-blue-50 peer-checked:border-blue-600">
+                                        <span class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold peer-checked:bg-blue-600 peer-checked:text-white">B</span>
+                                        <p class="text-xs font-bold text-slate-700">Opsi B: Sipil & Interior</p>
+                                    </div>
+                                </label>
+                                <label class="relative block cursor-pointer">
+                                    <input type="radio" name="reportOption" value="C" class="peer absolute opacity-0">
+                                    <div class="option-card p-3 rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center gap-3 transition-all peer-checked:bg-blue-50 peer-checked:border-blue-600">
+                                        <span class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold peer-checked:bg-blue-600 peer-checked:text-white">C</span>
+                                        <p class="text-xs font-bold text-slate-700">Opsi C: Paket Interior</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Add-on RAB Checkbox -->
+                        <div class="space-y-3 pt-2">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Layanan Tambahan (Add-on)</p>
+                            <label class="relative block cursor-pointer">
+                                <input type="checkbox" id="checkAddRAB" class="peer absolute opacity-0">
+                                <div class="addon-card p-3 rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center justify-between transition-all peer-checked:bg-green-50 peer-checked:border-green-600">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-6 h-6 bg-slate-200 rounded flex items-center justify-center peer-checked:bg-green-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 peer-checked:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-xs font-bold text-slate-700">Penyusunan RAB</p>
+                                    </div>
+                                    <span class="text-[10px] font-black text-slate-400">+2jt</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </aside>
+
+        <!-- RIGHT PANEL: PREVIEW -->
+        <main class="flex-1 overflow-y-auto p-12 flex flex-col items-center gap-12 relative bg-slate-100">
+            
+            <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center text-white">
+                <div class="spinner mb-4"></div>
+                <p class="font-bold tracking-widest uppercase text-xs">Menyiapkan Laporan...</p>
+            </div>
+
+            <!-- ================= REPORT PAGE ================= -->
+            <div id="page-1" class="a4-page">
+                
+                <!-- Report Header -->
+                <div class="flex justify-between items-start mb-12">
+                    <div>
+                        <div class="inline-block bg-slate-900 text-white text-[9px] font-black px-2 py-1 rounded mb-3 tracking-widest uppercase">Laporan Estimasi</div>
+                        <h1 class="text-4xl font-black text-slate-900 tracking-tighter leading-none mb-2 uppercase">DESIGN ESTIMATION</h1>
+                        <p class="text-slate-400 text-xs font-bold tracking-widest uppercase" id="timestampPreview">Loading...</p>
+                    </div>
+                    <div class="text-right border-l-4 border-blue-600 pl-6 py-1">
+                        <h2 class="text-xl font-extrabold text-slate-800 mb-1" id="clientNamePreview">Nama Klien</h2>
+                        <p class="text-blue-600 text-xs font-bold uppercase tracking-widest" id="locationPreview">Lokasi</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col gap-10">
+                    
+                    <!-- Measurements Summary -->
+                    <section id="sectionMeasurements">
+                        <div class="flex items-center gap-4 mb-6">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">01. Data Luasan Proyek</h3>
+                            <div class="h-[1px] flex-1 bg-slate-100"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-4 gap-4 mb-4">
+                            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center">
+                                <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Luas Tanah</span>
+                                <div class="flex items-baseline justify-center">
+                                    <span id="luasTanahPreview" class="text-3xl font-black text-slate-900">0</span>
+                                    <span class="text-[10px] font-bold text-slate-400 ml-1">m²</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center">
+                                <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Lantai 1</span>
+                                <div class="flex items-baseline justify-center">
+                                    <span id="luasBangunanL1Preview" class="text-3xl font-black text-slate-900">0</span>
+                                    <span class="text-[10px] font-bold text-slate-400 ml-1">m²</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center">
+                                <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Lantai 2</span>
+                                <div class="flex items-baseline justify-center">
+                                    <span id="luasBangunanL2Preview" class="text-3xl font-black text-slate-900">0</span>
+                                    <span class="text-[10px] font-bold text-slate-400 ml-1">m²</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-center">
+                                <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Lantai 3</span>
+                                <div class="flex items-baseline justify-center">
+                                    <span id="luasBangunanL3Preview" class="text-3xl font-black text-slate-900">0</span>
+                                    <span class="text-[10px] font-bold text-slate-400 ml-1">m²</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-5 rounded-3xl bg-blue-600 text-white flex justify-between items-center shadow-lg shadow-blue-100">
+                            <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Total Luas Hitung Arsitektur</span>
+                            <div class="text-right">
+                                <span id="totalLuasIdealPreview" class="text-3xl font-black">0</span>
+                                <span class="text-sm font-bold ml-1 uppercase">m²</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Cost Estimation Section -->
+                    <section>
+                        <div class="flex items-center gap-4 mb-8">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">02. Ringkasan Estimasi Biaya</h3>
+                            <div class="h-[1px] flex-1 bg-slate-100"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-6">
+                            
+                            <!-- Opsi A (Sipil Only M2) -->
+                            <div id="prevOpsiA" class="bg-white border-2 border-slate-900 rounded-[2.5rem] overflow-hidden hidden">
+                                <div class="bg-slate-900 px-8 py-4 border-b border-slate-200 flex justify-between items-center">
+                                    <h4 class="text-[10px] font-black text-white uppercase tracking-widest">Opsi A: Paket Desain Sipil / Struktur</h4>
+                                    <span class="text-[9px] font-bold text-slate-400 bg-white/10 px-3 py-1 rounded-full uppercase">Per M²</span>
+                                </div>
+                                <div class="p-8 space-y-4">
+                                    <div class="flex justify-between items-center border-b border-slate-50 pb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <span>Biaya Desain (<span class="prevTotalM2">0</span> m² x Rp 100rb)</span>
+                                        <span id="prevCostA_Base" class="text-slate-900 font-black">Rp 0</span>
+                                    </div>
+                                    <div id="prevRabRowA" class="hidden flex justify-between items-center border-b border-slate-50 pb-3 text-xs font-bold uppercase tracking-wider text-green-600">
+                                        <span>Add-on: Penyusunan RAB Struktur</span>
+                                        <span class="font-black">Rp 2.000.000</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-sm font-black text-slate-900 uppercase tracking-widest">Total Estimasi A</span>
+                                        <span id="prevCostA_Total" class="text-3xl font-black text-slate-900 tracking-tighter">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Opsi B (Sipil + Interior M2) -->
+                            <div id="prevOpsiB" class="bg-white border-2 border-purple-100 rounded-[2.5rem] overflow-hidden hidden">
+                                <div class="bg-purple-600 px-8 py-4 flex justify-between items-center shadow-lg shadow-purple-100">
+                                    <h4 class="text-[10px] font-black text-white uppercase tracking-widest">Opsi B: Paket Desain Sipil & Interior</h4>
+                                    <span class="text-[9px] font-bold text-white/40 bg-white/10 px-3 py-1 rounded-full uppercase">Combo M²</span>
+                                </div>
+                                <div class="p-8 space-y-4">
+                                    <div class="flex justify-between items-center border-b border-purple-50 pb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <span>Biaya Desain Lengkap (<span class="prevTotalM2">0</span> m² x Rp 150rb)</span>
+                                        <span id="prevCostB_Base" class="text-slate-900 font-black">Rp 0</span>
+                                    </div>
+                                    <div id="prevRabRowB" class="hidden flex justify-between items-center border-b border-purple-50 pb-3 text-xs font-bold uppercase tracking-wider text-white/80">
+                                        <span>Add-on: Penyusunan RAB Lengkap</span>
+                                        <span class="font-black text-white">Rp 2.000.000</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-sm font-black text-purple-600 uppercase tracking-widest">Total Estimasi B</span>
+                                        <span id="prevCostB_Total" class="text-3xl font-black text-purple-600 tracking-tighter">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Opsi C (Interior Unit) -->
+                            <div id="prevOpsiC" class="bg-white border-2 border-slate-900 rounded-[2.5rem] overflow-hidden hidden">
+                                <div class="bg-slate-900 px-8 py-4 flex justify-between items-center">
+                                    <h4 class="text-[10px] font-black text-white uppercase tracking-widest">Opsi C: Paket Desain Interior</h4>
+                                    <span class="text-[9px] font-bold text-slate-400 bg-white/10 px-3 py-1 rounded-full uppercase">Per Area</span>
+                                </div>
+                                <div class="p-8 space-y-4">
+                                    <div class="flex justify-between items-center border-b border-slate-50 pb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        <span>Biaya Desain (<span id="prevAreaCount">0</span> Area x Rp 2.5jt)</span>
+                                        <span id="prevCostC_Base" class="text-slate-900 font-black">Rp 0</span>
+                                    </div>
+                                    <div id="prevRabRowC" class="hidden flex justify-between items-center border-b border-slate-50 pb-3 text-xs font-bold uppercase tracking-wider text-green-600">
+                                        <span>Add-on: Penyusunan RAB Material</span>
+                                        <span class="font-black">Rp 2.000.000</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-sm font-black text-blue-600 uppercase tracking-widest">Total Estimasi C</span>
+                                        <span id="prevCostC_Total" class="text-3xl font-black text-blue-600 tracking-tighter">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="noOptionPlaceholder" class="p-12 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]">
+                                <p class="text-slate-300 font-black uppercase tracking-widest text-xs">Silakan masukkan data dan pilih opsi paket di panel sebelah kiri.</p>
+                            </div>
+
+                        </div>
+
+                        <div id="refundableNote" class="mt-8 p-6 bg-yellow-50 rounded-3xl border border-yellow-100 flex gap-5 items-center hidden">
+                            <span class="text-3xl">💡</span>
+                            <p class="text-[10px] leading-relaxed text-yellow-800 font-bold uppercase tracking-wider italic">
+                                Seluruh biaya di atas bersifat <strong>Refundable</strong> (dikembalikan) jika proyek dilanjutkan ke tahap konstruksi / pelaksanaan bersama kami.
+                            </p>
+                        </div>
+                    </section>
+
+                </div>
+
+                <div class="mt-auto pt-10 border-t border-slate-100 flex justify-between items-end">
+                    <div class="text-left">
+                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 tracking-[0.3em]">Hormat Kami,</p>
+                        <p class="text-lg font-black text-slate-900 tracking-tighter">Surveyor</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest">langitlangit.id</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        // --- Utility ---
+        const getEl = (id) => document.getElementById(id);
+        const formatRupiah = (num) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num || 0);
+        };
+
+        // --- Core Logic ---
+        function updatePreview() {
+            const data = {
+                client: getEl('clientName').value || 'Nama Klien',
+                loc: getEl('location').value || 'Lokasi',
+                lTanah: parseFloat(getEl('luasTanah').value) || 0,
+                l1: parseFloat(getEl('luasBangunanL1').value) || 0,
+                l2: parseFloat(getEl('luasBangunanL2').value) || 0,
+                l3: parseFloat(getEl('luasBangunanL3').value) || 0,
+                areaP: parseInt(getEl('jumlahAreaPrioritas').value) || 0,
+                selectedOption: document.querySelector('input[name="reportOption"]:checked').value,
+                rabChecked: getEl('checkAddRAB').checked
+            };
+
+            // Update Header
+            getEl('clientNamePreview').textContent = data.client;
+            getEl('locationPreview').textContent = data.loc;
+            getEl('timestampPreview').textContent = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Update Measurements
+            getEl('luasTanahPreview').textContent = data.lTanah;
+            getEl('luasBangunanL1Preview').textContent = data.l1;
+            getEl('luasBangunanL2Preview').textContent = data.l2;
+            getEl('luasBangunanL3Preview').textContent = data.l3;
+
+            const totalLuasM2 = data.lTanah + data.l2 + data.l3;
+            getEl('totalLuasIdealPreview').textContent = totalLuasM2;
+
+            // Calculation Constants
+            const rabPrice = data.rabChecked ? 2000000 : 0;
+            
+            // Toggle Display Elements
+            getEl('prevOpsiA').classList.add('hidden');
+            getEl('prevOpsiB').classList.add('hidden');
+            getEl('prevOpsiC').classList.add('hidden');
+            getEl('prevRabRowA').classList.toggle('hidden', !data.rabChecked);
+            getEl('prevRabRowB').classList.toggle('hidden', !data.rabChecked);
+            getEl('prevRabRowC').classList.toggle('hidden', !data.rabChecked);
+            
+            let isCurrentOptionValid = false;
+
+            // Logic Selection A (New A: Sipil Only M2)
+            if (data.selectedOption === 'A' && totalLuasM2 > 0) {
+                document.querySelectorAll('.prevTotalM2').forEach(el => el.textContent = totalLuasM2);
+                const baseA = totalLuasM2 * 100000;
+                getEl('prevOpsiA').classList.remove('hidden');
+                getEl('prevCostA_Base').textContent = formatRupiah(baseA);
+                getEl('prevCostA_Total').textContent = formatRupiah(baseA + rabPrice);
+                isCurrentOptionValid = true;
+            } 
+            // Logic Selection B (New B: Sipil + Interior M2)
+            else if (data.selectedOption === 'B' && totalLuasM2 > 0) {
+                document.querySelectorAll('.prevTotalM2').forEach(el => el.textContent = totalLuasM2);
+                const baseB = totalLuasM2 * 150000;
+                getEl('prevOpsiB').classList.remove('hidden');
+                getEl('prevCostB_Base').textContent = formatRupiah(baseB);
+                getEl('prevCostB_Total').textContent = formatRupiah(baseB + rabPrice);
+                isCurrentOptionValid = true;
+            }
+            // Logic Selection C (New C: Interior Unit)
+            else if (data.selectedOption === 'C' && data.areaP > 0) {
+                const baseC = data.areaP * 2500000;
+                getEl('prevOpsiC').classList.remove('hidden');
+                getEl('prevAreaCount').textContent = data.areaP;
+                getEl('prevCostC_Base').textContent = formatRupiah(baseC);
+                getEl('prevCostC_Total').textContent = formatRupiah(baseC + rabPrice);
+                isCurrentOptionValid = true;
+            }
+
+            // Global UI Feedback
+            if (isCurrentOptionValid) {
+                getEl('noOptionPlaceholder').classList.add('hidden');
+                getEl('refundableNote').classList.remove('hidden');
+            } else {
+                getEl('noOptionPlaceholder').classList.remove('hidden');
+                getEl('refundableNote').classList.add('hidden');
+            }
+        }
+
+        // --- PDF Export ---
+        async function exportPDF() {
+            const loading = getEl('loadingOverlay');
+            const btn = getEl('exportPdfButton');
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+            btn.disabled = true;
+
+            try {
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const canvas = await html2canvas(getEl('page-1'), { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                pdf.save(`Estimasi_${getEl('clientName').value || 'Draft'}.pdf`);
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan saat menyimpan PDF.');
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            getEl('surveyForm').addEventListener('input', updatePreview);
+            getEl('resetButton').addEventListener('click', () => { 
+                if(confirm('Hapus semua data input?')) { 
+                    getEl('surveyForm').reset(); 
+                    getEl('checkAddRAB').checked = false;
+                    updatePreview(); 
+                }
+            });
+            getEl('exportPdfButton').addEventListener('click', exportPDF);
+            updatePreview();
+        });
+
+    </script>
+</body>
+</html>
